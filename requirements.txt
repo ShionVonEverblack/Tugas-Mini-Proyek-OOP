@@ -1,8 +1,2 @@
-# Tugas Mini Proyek OOP - S1 Kecerdasan Artifisial
-# Python Standard Library only (Built-in)
-# Versi Python yang direkomendasikan: Python >= 3.10
-#
-# Seluruh fungsionalitas dibangun tanpa library pihak ketiga:
-# - abc (Abstract Base Classes)
-# - datetime (Penanda waktu transaksi)
-# - unittest (Pengujian unit test)
+# Tidak ada library tambahan, semua pakai bawaan Python (abc, datetime, typing, unittest)
+# Python 3.8 ke atas

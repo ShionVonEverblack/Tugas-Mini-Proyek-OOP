@@ -1,150 +1,183 @@
-import sys
 from models import Petugas, GerbangTol, Mobil, Bis, Truk
 
-def cetak_garis(karakter="=", panjang=50):
+
+def garis(karakter="-", panjang=45):
     print(karakter * panjang)
 
-def buat_kendaraan_manual():
-    print("\n--- PILIH JENIS KENDARAAN ---")
-    print("1. Mobil (Golongan 1)")
-    print("2. Bis   (Golongan 2)")
-    print("3. Truk  (Golongan 3 - 5)")
-    
-    pilihan = input("Masukkan pilihan (1/2/3): ").strip()
-    plat = input("Masukkan plat nomor (contoh: L 1234 AB): ").strip().upper()
-    
+
+def rupiah(nominal):
+    return "Rp " + f"{nominal:,.0f}".replace(",", ".")
+
+
+def rapikan_waktu(waktu_iso):
+    return waktu_iso[:19].replace("T", " ")
+
+
+def input_angka(pesan, tipe=float):
+    while True:
+        teks = input(pesan).strip()
+        try:
+            angka = tipe(teks)
+        except ValueError:
+            print("Harus angka, coba lagi.")
+            continue
+
+        if angka <= 0:
+            print("Angka harus lebih dari 0.")
+            continue
+        return angka
+
+
+def input_petugas():
+    print("Data petugas yang berjaga")
+    id_petugas = input("ID petugas : ").strip() or "PTG001"
+    nama = input("Nama       : ").strip() or "Petugas"
+
+    daftar_shift = {"1": "Pagi", "2": "Siang", "3": "Malam"}
+    while True:
+        print("Shift: 1. Pagi  2. Siang  3. Malam")
+        pilih = input("Pilih shift: ").strip()
+        if pilih in daftar_shift:
+            return Petugas(id_petugas, nama, daftar_shift[pilih])
+        print("Pilihan shift tidak ada.")
+
+
+def buat_kendaraan():
+    print("\nJenis kendaraan:")
+    print("1. Mobil (Gol 1)")
+    print("2. Bis   (Gol 2)")
+    print("3. Truk  (Gol 3)")
+    jenis = input("Pilih: ").strip()
+
+    if jenis not in ("1", "2", "3"):
+        print("Jenis kendaraan tidak ada.")
+        return None
+
+    plat = input("Plat nomor: ").strip().upper()
     if not plat:
-        print("[!] Plat nomor tidak boleh kosong.")
+        print("Plat nomor tidak boleh kosong.")
         return None
 
-    if pilihan == "1":
-        try:
-            kursi = int(input("Jumlah kursi (misal: 5 atau 7): "))
-            return Mobil(plat_nomor=plat, jumlah_kursi=kursi)
-        except ValueError:
-            print("[!] Input jumlah kursi harus berupa angka.")
-            return None
+    if jenis == "1":
+        return Mobil(plat)
+    if jenis == "2":
+        return Bis(plat)
 
-    elif pilihan == "2":
-        try:
-            kapasitas = int(input("Kapasitas penumpang (misal: 40): "))
-            return Bis(plat_nomor=plat, kapasitas_penumpang=kapasitas)
-        except ValueError:
-            print("[!] Input kapasitas penumpang harus angka.")
-            return None
+    sumbu = input_angka("Jumlah sumbu truk: ", int)
+    return Truk(plat, jumlah_sumbu=sumbu)
 
-    elif pilihan == "3":
-        try:
-            sumbu = int(input("Jumlah sumbu roda (2/3/4/5): "))
-            beban = float(input("Beban muatan (dalam ton): "))
-            return Truk(plat_nomor=plat, jumlah_sumbu=sumbu, beban_ton=beban)
-        except ValueError:
-            print("[!] Input sumbu atau beban tidak valid.")
-            return None
-    else:
-        print("[!] Pilihan jenis kendaraan salah.")
-        return None
+
+def menu_tap_masuk(gerbang, petugas):
+    kendaraan = buat_kendaraan()
+    if kendaraan is None:
+        return
+
+    try:
+        hasil = gerbang.tap_masuk(kendaraan, petugas)
+    except (ValueError, TypeError) as e:
+        print("Gagal tap masuk:", e)
+        return
+
+    print(hasil["pesan"])
+    print("Jenis :", type(kendaraan).__name__, "- Golongan", hasil["golongan"])
+    print("Waktu :", rapikan_waktu(hasil["waktu_masuk"]))
+
+
+def menu_tap_keluar(gerbang, petugas):
+    if not gerbang.kendaraan_di_dalam:
+        print("Belum ada kendaraan yang tap masuk.")
+        return
+
+    print("Kendaraan yang masih di dalam tol:")
+    for plat, data in gerbang.kendaraan_di_dalam.items():
+        jenis = type(data["kendaraan"]).__name__
+        print(f"- {plat} ({jenis})")
+
+    plat = input("Plat nomor yang keluar: ").strip().upper()
+    jarak = input_angka("Jarak tempuh (km): ")
+
+    try:
+        struk = gerbang.tap_keluar(plat, jarak, petugas)
+    except (ValueError, TypeError) as e:
+        print("Gagal tap keluar:", e)
+        return
+
+    garis("=")
+    print("STRUK PEMBAYARAN TOL".center(45))
+    garis("=")
+    print("Gerbang      :", struk["nama_gerbang"])
+    print("Plat nomor   :", struk["nomor_plat"])
+    print("Golongan     :", struk["golongan"])
+    print("Masuk        :", rapikan_waktu(struk["waktu_masuk"]))
+    print("Keluar       :", rapikan_waktu(struk["waktu_keluar"]))
+    print("Jarak        :", f"{struk['jarak']:g} km")
+    print("Petugas      :", struk["id_petugas_keluar"])
+    garis()
+    print("TOTAL BAYAR  :", rupiah(struk["tarif"]))
+    garis("=")
+
+
+def menu_pendapatan(gerbang):
+    jumlah = len(gerbang.tampilkan_riwayat())
+    print("Kendaraan sudah bayar :", jumlah)
+    print("Total pendapatan      :", rupiah(gerbang.total_pendapatan()))
+
+
+def menu_riwayat(gerbang):
+    riwayat = gerbang.tampilkan_riwayat()
+    if not riwayat:
+        print("Belum ada transaksi.")
+        return
+
+    print(f"{'No':<4}{'Plat':<12}{'Gol':<5}{'Jarak':<9}{'Tarif':>14}")
+    garis()
+    for i, t in enumerate(riwayat, start=1):
+        jarak = f"{t['jarak']:g} km"
+        print(f"{i:<4}{t['nomor_plat']:<12}{t['golongan']:<5}{jarak:<9}{rupiah(t['tarif']):>14}")
+    garis()
+    print("Total:", rupiah(gerbang.total_pendapatan()))
+
 
 def main():
-    # Setup awal sistem tol
-    print("\n" + "=" * 50)
-    print("   SISTEM MANAJEMEN GERBANG TOL (FLAT RATE)")
-    print("          S1 Kecerdasan Artifisial")
-    print("=" * 50)
+    garis("=")
+    print("SISTEM MANAJEMEN TOL".center(45))
+    garis("=")
 
-    # Inisialisasi petugas dan gerbang default
-    petugas_aktif = Petugas(id_petugas="P-01", nama="Budi Santoso", shift="Pagi")
-    gerbang_aktif = GerbangTol(
-        id_gerbang="GT-WARU-01",
-        nama_gerbang="Gerbang Tol Waru Utama",
-        tarif_golongan={
-            1: 9000,
-            2: 13500,
-            3: 18000,
-            4: 22500,
-            5: 27000
-        }
-    )
+    petugas = input_petugas()
+    gerbang = GerbangTol("GT01", "Gerbang Tol Waru")
+
+    print()
+    print(petugas.tampilkan_info())
+    print("Bertugas di", gerbang.nama_gerbang)
 
     while True:
-        print(f"\n[Lokasi: {gerbang_aktif.nama_gerbang} | Petugas: {petugas_aktif.nama} ({petugas_aktif.shift})]")
-        print("Menu Utama:")
-        print("1. Layani Kendaraan Masuk & Bayar Tol")
-        print("2. Lihat Riwayat Transaksi Gerbang")
-        print("3. Cek Total Pendapatan Tol Hari Ini")
-        print("4. Cek Info Petugas & Gerbang")
-        print("5. Keluar dari Aplikasi")
-        
-        opsi = input("\nPilih menu (1-5): ").strip()
+        print()
+        garis()
+        print("1. Tap masuk kendaraan")
+        print("2. Tap keluar & bayar")
+        print("3. Cek total pendapatan")
+        print("4. Cetak histori transaksi")
+        print("0. Keluar")
+        garis()
+        pilihan = input("Pilih menu: ").strip()
 
-        if opsi == "1":
-            cetak_garis("-")
-            kendaraan = buat_kendaraan_manual()
-            if kendaraan is None:
-                continue
-
-            print("\n>> Memeriksa kelayakan kendaraan oleh petugas...")
-            layak = petugas_aktif.validasi_kelayakan(kendaraan)
-            
-            if not layak:
-                print(f"[X] Kendaraan {kendaraan.plat_nomor} TIDAK LAYAK masuk tol!")
-                print("    Alasan: Pelanggaran fisik/muatan/roda tidak memenuhi standar.")
-                continue
-
-            print(f"[OK] Kendaraan {kendaraan.plat_nomor} lolos validasi.")
-            print(">> Memproses transaksi pembayaran tol flat rate...")
-            
-            hasil = gerbang_aktif.bayar_tol(kendaraan)
-            
-            # Cetak struk sederhana
-            cetak_garis("*")
-            print("             STRUK BUKTI PEMBAYARAN TOL")
-            cetak_garis("-")
-            print(f" ID Transaksi : {hasil.get('id_transaksi', '-')}")
-            print(f" Gerbang      : {gerbang_aktif.nama_gerbang}")
-            print(f" Petugas Jaga : {petugas_aktif.nama}")
-            print(f" Plat Nomor   : {hasil.get('plat_nomor')}")
-            print(f" Golongan     : Golongan {hasil.get('golongan')}")
-            print(f" Tarif Flat   : Rp {hasil.get('tarif', 0):,}")
-            print(f" Status       : {hasil.get('status', 'Berhasil')}")
-            cetak_garis("*")
-
-        elif opsi == "2":
-            cetak_garis("-")
-            riwayat = gerbang_aktif.tampilkan_riwayat()
-            if not riwayat:
-                print("Belum ada transaksi kendaraan yang tercatat hari ini.")
-            else:
-                print(f"DAFTAR RIWAYAT TRANSAKSI ({len(riwayat)} Kendaraan):")
-                for idx, t in enumerate(riwayat, start=1):
-                    print(f"{idx}. [{t.get('id_transaksi')}] Plat: {t.get('plat_nomor')} | "f"Gol: {t.get('golongan')} | Biaya: Rp {t.get('tarif'):,} | Status: {t.get('status')}")
-            cetak_garis("-")
-
-        elif opsi == "3":
-            cetak_garis("-")
-            total = gerbang_aktif.total_pendapatan()
-            jumlah_trx = len(gerbang_aktif.tampilkan_riwayat())
-            print(f"Total Pendapatan Gerbang : Rp {total:,}")
-            print(f"Total Kendaraan Dilayani : {jumlah_trx} unit")
-            cetak_garis("-")
-
-        elif opsi == "4":
-            cetak_garis("-")
-            print("INFORMASI SISTEM:")
-            print(petugas_aktif.tampilkan_info())
-            print(f"ID Gerbang     : {gerbang_aktif.id_gerbang}")
-            print(f"Nama Gerbang   : {gerbang_aktif.nama_gerbang}")
-            print("Daftar Tarif   :")
-            for gol, tarif in gerbang_aktif.tarif_golongan.items():
-                print(f"  - Golongan {gol} : Rp {tarif:,}")
-            cetak_garis("-")
-
-        elif opsi == "5":
-            print("\nMenutup sesi gerbang tol. Terima kasih dan selamat bertugas kembali!\n")
-            sys.exit(0)
-
+        if pilihan == "1":
+            menu_tap_masuk(gerbang, petugas)
+        elif pilihan == "2":
+            menu_tap_keluar(gerbang, petugas)
+        elif pilihan == "3":
+            menu_pendapatan(gerbang)
+        elif pilihan == "4":
+            menu_riwayat(gerbang)
+        elif pilihan == "0":
+            print(f"Shift {petugas.shift} selesai. Terima kasih, {petugas.nama}!")
+            break
         else:
-            print("[!] Pilihan menu tidak tersedia, silakan ketik angka 1 - 5.")
+            print("Menu tidak ada.")
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nProgram dihentikan.")
