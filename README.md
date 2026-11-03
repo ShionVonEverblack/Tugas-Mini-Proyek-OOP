@@ -16,27 +16,6 @@ Sistem ini memodelkan interaksi antara **Petugas**, **Gerbang Tol**, dan berbaga
 4. **Association:**
    - Relasi kerja antara `Petugas` yang memvalidasi `Kendaraan`.
 
----
-
-## Pembagian Kerja Tim (3 Orang)
-- **Orang 1 (Hierarki Kendaraan):**
-  - `models/kendaraan.py`
-  - `models/kendaraan_khusus.py`
-  - `tests/test_kendaraan.py`
-- **Orang 2 (Gerbang & Petugas):**
-  - `models/petugas.py`
-  - `models/gerbang_tol.py`
-  - `tests/test_petugas.py`
-  - `tests/test_gerbang_tol.py`
-- **Orang 3 (Integrasi, Interface, & Dokumentasi):**
-  - `models/__init__.py`
-  - `main.py`
-  - `demo_simulasi.py`
-  - `requirements.txt`
-  - `README.md`
-
----
-
 ## Struktur Direktori
 ```text
 Tugas-Mini-Proyek-OOP/
