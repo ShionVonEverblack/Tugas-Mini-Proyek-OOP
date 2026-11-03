@@ -11,42 +11,7 @@ Program ini mensimulasikan gerbang tol sederhana: kendaraan tap masuk, lalu tap 
 | Orang 3 | `models/__init__.py`, `main.py`, `demo_simulasi.py`, README, requirements |
 
 ## Diagram Class
-```mermaid
-classDiagram
-    class Kendaraan {
-        <<abstract>>
-        +nomor_plat: str
-        +golongan: int
-        +hitung_tarif(jarak)* float
-    }
-    class Mobil
-    class Bis
-    class Truk {
-        +jumlah_sumbu: int
-    }
-    class Petugas {
-        +id_petugas: str
-        +nama: str
-        +shift: str
-        +validasi_kelayakan(k) bool
-        +tampilkan_info() str
-    }
-    class GerbangTol {
-        +id_gerbang: str
-        +nama_gerbang: str
-        +kendaraan_di_dalam: dict
-        +riwayat_transaksi: list
-        +tap_masuk(k, petugas) dict
-        +tap_keluar(nomor_plat, jarak, petugas) dict
-        +total_pendapatan()
-        +tampilkan_riwayat() list
-    }
-    Kendaraan <|-- Mobil
-    Kendaraan <|-- Bis
-    Kendaraan <|-- Truk
-    Petugas --> Kendaraan : memvalidasi
-    GerbangTol o-- Kendaraan : melayani
-```
+![Class Diagram Sistem Manajemen Tol](docs/class_diagram.jpg)
 
 ## Konsep OOP yang Dipakai
 - **Abstract class**: `Kendaraan` pakai `ABC` dan `@abstractmethod`, jadi tidak bisa dibuat objeknya langsung.
@@ -69,6 +34,8 @@ Tugas-Mini-Proyek-OOP/
 ├── demo_simulasi.py     # demo otomatis tanpa input
 ├── requirements.txt
 ├── README.md
+├── docs/
+│   └── class_diagram.jpg
 ├── models/
 │   ├── __init__.py
 │   ├── kendaraan.py
